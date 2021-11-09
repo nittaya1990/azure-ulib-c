@@ -14,7 +14,6 @@ option(SKIP_SAMPLES "Skip building samples (default is OFF)[if possible, they ar
 option(USE_INSTALLED_DEPENDENCIES "Use installed packages instead of building dependencies from submodules" OFF)
 option(VALIDATE_DOCUMENTATION "set to enable the -Wdocumentation flag on clang to validate documentation.
                                 If not using clang this will have no effect." OFF)
-option(REMOVE_IPC_UNPUBLISH "Remove the ipc unpublish and all the extra code required to handle it." OFF)
 
 message("CONFIGURATIONS:")
 if (NOT PRECONDITIONS)
@@ -43,12 +42,6 @@ else()
   message("  -- Validate documentation ON")
 endif()
 
-if (REMOVE_IPC_UNPUBLISH)
-  message("  -- Unpublish in IPC OFF")
-else()
-  message("  -- Unpublish in IPC ON")
-endif()
-
 if (SKIP_SAMPLES)
   message("  -- Samples OFF")
 else()
@@ -71,6 +64,8 @@ set(AZURE_ULIB_C_VERSION 0.1.0)
 
 set(CMAKE_C_STANDARD 99)
 
+set(ULIB_RESULT_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/inc)
+
 # for gcc, we need to add no-clobbered compile opt to avoid warning about set-jump function
 set(NO_CLOBBERED_WARNING "")
 if (CMAKE_C_COMPILER_ID MATCHES "GNU")
@@ -92,6 +87,9 @@ include("build_all/configs/ulib_build_rules.cmake")
 #Set the standards for C and C++
 ulib_add_standards()
 
+#Create PAL library.
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/pal)
+
 #Add library of ulib c files
 add_library(azure_ulib_c
     ${CMAKE_CURRENT_LIST_DIR}/src/az_ulib_ustream/az_ulib_ustream_aux.c
@@ -100,7 +98,7 @@ add_library(azure_ulib_c
     ${CMAKE_CURRENT_LIST_DIR}/src/az_ulib_ipc/az_ulib_ipc.c
     ${CMAKE_CURRENT_LIST_DIR}/src/az_ulib_ipc/az_ulib_ipc_query_interface.c
     ${CMAKE_CURRENT_LIST_DIR}/src/az_ulib_ipc/az_ulib_ipc_interface_manager_interface.c
-    ${CMAKE_CURRENT_LIST_DIR}/pal/os/src/${ULIB_PAL_OS_DIRECTORY}/az_ulib_pal_os.c
+    ${CMAKE_CURRENT_LIST_DIR}/src/az_ulib_registry/az_ulib_registry.c
 )
 
 add_library(az::ulib ALIAS azure_ulib_c)
@@ -110,9 +108,6 @@ target_include_directories(azure_ulib_c
     PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/inc
         ${CMAKE_CURRENT_LIST_DIR}/config
-        ${CMAKE_CURRENT_LIST_DIR}/pal/${ULIB_PAL_DIRECTORY}
-        ${CMAKE_CURRENT_LIST_DIR}/pal/os/inc
-        ${CMAKE_CURRENT_LIST_DIR}/pal/os/inc/${ULIB_PAL_OS_DIRECTORY}
         ${CMAKE_CURRENT_LIST_DIR}/deps/azure-core-c/inc
         ${ULIB_PAL_OS_PORT}
         ${ULIB_PAL_OS_INC}
@@ -130,15 +125,9 @@ if(${VALIDATE_DOCUMENTATION})
     )
 endif()
 
-if(${REMOVE_IPC_UNPUBLISH})
-    target_compile_definitions(azure_ulib_c
-        PUBLIC
-            AZ_ULIB_CONFIG_REMOVE_UNPUBLISH
-    )
-endif()
-
 target_link_libraries(azure_ulib_c
   PUBLIC
+    az::upal
     az::core
 )
 

@@ -1,16 +1,35 @@
-// Copyright (c) Microsoft. All rights reserved.
-// Licensed under the MIT license.
-// See LICENSE file in the project root for full license information.
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 #include "az_ulib_ipc_api.h"
+#include "az_ulib_registry_api.h"
 #include "az_ulib_result.h"
-#include "cipher_v1i1.h"
-#include "cipher_v2i1.h"
+#include "key_vault_1.h"
+#include "key_vault_2.h"
 #include "my_consumer.h"
 #include <inttypes.h>
 #include <stdio.h>
 
-static az_ulib_ipc ipc_handle;
+static az_ulib_ipc_control_block ipc_control_block;
+
+#define REGISTRY_PAGE_SIZE 0x800
+
+/* Static memory to store registry information. Because we run this samples in Linux and Windows,
+ * instead of store the Registry in a Flash, we store it in the RAM. */
+static uint8_t registry_buffer[REGISTRY_PAGE_SIZE * 2];
+static uint8_t registry_informarmation_buffer[REGISTRY_PAGE_SIZE];
+
+#define __REGISTRY_START (registry_buffer[0])
+#define __REGISTRY_END (registry_buffer[(REGISTRY_PAGE_SIZE * 2)])
+#define __REGISTRYINFO_START (registry_informarmation_buffer[0])
+#define __REGISTRYINFO_END (registry_informarmation_buffer[REGISTRY_PAGE_SIZE])
+
+static const az_ulib_registry_control_block registry_cb
+    = { .registry_start = (void*)(&__REGISTRY_START),
+        .registry_end = (void*)(&__REGISTRY_END),
+        .registry_info_start = (void*)(&__REGISTRYINFO_START),
+        .registry_info_end = (void*)(&__REGISTRYINFO_END),
+        .page_size = REGISTRY_PAGE_SIZE };
 
 /*
  * OS code.
@@ -21,11 +40,15 @@ int main(void)
 
   (void)printf("Start ipc_call_interface sample.\r\n\r\n");
 
+  /* Start Registry. */
+  az_ulib_registry_init(&registry_cb);
+  az_ulib_registry_clean_all();
+
   /*
    * Create the IPC. It shall be called at the very beginning of the application.
    * The IPC will prepare itself to receive interfaces.
    */
-  if ((result = az_ulib_ipc_init(&ipc_handle)) != AZ_OK)
+  if ((result = az_ulib_ipc_init(&ipc_control_block)) != AZ_OK)
   {
     (void)printf("Initialize IPC failed with code %" PRIi32 ".\r\n", result);
   }
@@ -33,7 +56,7 @@ int main(void)
   {
     /* Publish cipher v1 with 1 key.
      * After this point anybody can call the cipher commands through IPC. */
-    cipher_v1i1_create();
+    key_vault_1_create();
     (void)printf("\r\n");
 
     /* Consumer will use the cipher interface. */
@@ -50,7 +73,7 @@ int main(void)
 
     /* Publish cipher v2 with 2 key.
      * After this point anybody can call the cipher commands through IPC. */
-    cipher_v2i1_create();
+    key_vault_2_create();
     (void)printf("\r\n");
 
     /* Query current interfaces. */
@@ -83,7 +106,7 @@ int main(void)
 
     /* Unpublish cipher v1. After this point, any call to cipher will return
      * AZ_ERROR_ITEM_NOT_FOUND. */
-    cipher_v1i1_destroy();
+    key_vault_1_destroy();
     (void)printf("\r\n");
 
     /* Query current interfaces. */
@@ -91,13 +114,15 @@ int main(void)
 
     /* Unpublish cipher v2. After this point, any call to cipher will return
      * AZ_ERROR_ITEM_NOT_FOUND. */
-    cipher_v2i1_destroy();
+    key_vault_2_destroy();
     (void)printf("\r\n");
 
     /* Consumer will stop to use the cipher interface. */
     my_consumer_destroy();
     (void)printf("\r\n");
   }
+
+  az_ulib_registry_deinit();
 
   return 0;
 }

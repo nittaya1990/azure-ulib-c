@@ -41,31 +41,44 @@ extern "C"
  * @brief   Maximum interface instances.
  *
  * Defines the maximum number of instances of each interface. The instance is the handle returned by
- * az_ulib_ipc_get_interface() or az_ulib_ipc_try_get_interface(). This value does not affect the
- * amount of memory that the IPC will use. It just impose a limit on the interface `ref_count`.
+ * az_ulib_ipc_try_get_interface(). This value does not affect the amount of memory that the IPC
+ * will use. It just impose a limit on the interface `ref_count`.
  */
-#define AZ_ULIB_CONFIG_MAX_IPC_INSTANCES 20
+#define AZ_ULIB_CONFIG_MAX_IPC_INSTANCES 128
 
-#ifndef AZ_ULIB_CONFIG_REMOVE_UNPUBLISH
 /**
- * @brief   Enable unpublish on IPC.
+ * @brief   Maximum number of chars that can compose the package name.
  *
- * @note    Comment this line will:
- *            - Improve performance.
- *            - Reduce memory by 2 longs per IPC interface.
- *            - Remove the API az_ulib_ipc_unpublish.
- *
- * To allow users to unpublish interfaces in the IPC, it is necessary to add a flag to avoid an
- * interface to be unpublished if at least one of its capabilities are in execution at that time.
- * So, if the system doesn't need to unpublish interfaces, this controls can be removed, saving
- * memory space and improving the az_ulib_ipc_call performance.
- *
- * @note  **To avoid conflicts in the linker, instead of comment this line, define
- *        AZ_ULIB_CONFIG_REMOVE_UNPUBLISH as part of the make file that will build the project.
- *        For cmake, use the option -DREMOVE_IPC_UNPUBLISH.**
+ * Define the maximum number of bytes to store the package name, including the `/0`. Increase this
+ * number shall increase the utilization of RAM in the DM, and the flash in the Registry.
  */
-#define AZ_ULIB_CONFIG_IPC_UNPUBLISH
-#endif /*AZ_ULIB_CONFIG_REMOVE_UNPUBLISH*/
+#define AZ_ULIB_CONFIG_MAX_DM_PACKAGE_NAME 32
+
+/**
+ * @brief   Maximum number of chars that can compose the package name and version.
+ *
+ * Define the maximum number of bytes to store the package name, an dot and the package version in
+ * hexadecimal, including the `/0`. Increase this number shall increase the utilization of RAM in
+ * the DM, and the flash in the Registry.
+ */
+#define AZ_ULIB_CONFIG_MAX_DM_PACKAGE_NAME_VERSION (AZ_ULIB_CONFIG_MAX_DM_PACKAGE_NAME + 1 + 8)
+
+/**
+ * @brief   Maximum number of chars that can compose the interface name.
+ *
+ * Define the maximum number of bytes to store the interface name, including the `/0`. Increase this
+ * number shall increase the utilization of stack in the IPC, and the flash in the Registry.
+ */
+#define AZ_ULIB_CONFIG_MAX_DM_INTERFACE_NAME 32
+
+/**
+ * @brief   Maximum number of chars that can compose the interface name and version.
+ *
+ * Define the maximum number of bytes to store the interface name, an dot and the interface version
+ * in hexadecimal, including the `/0`. Increase this number shall increase the utilization of RAM in
+ * the DM, and the flash in the Registry.
+ */
+#define AZ_ULIB_CONFIG_MAX_DM_INTERFACE_NAME_VERSION (AZ_ULIB_CONFIG_MAX_DM_INTERFACE_NAME + 1 + 8)
 
 #ifdef __cplusplus
 }

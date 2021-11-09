@@ -12,7 +12,6 @@ extern "C"
 
   void my_consumer_create(void);
   void my_consumer_destroy(void);
-  void my_consumer_do_display(void);
 
 #ifdef __cplusplus
 }
